@@ -22,7 +22,15 @@ pub enum Message {
     ChannelAftertouch(Channel, U7),
     PitchWheelChange(Channel, U7, U7),
     ControlChange(Channel, ControlFunction, U7),
-    System(Channel),
+    System(System),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum System {
+    Clock = 0x8,
+    Start = 0x0a,
+    Continue = 0x0b,
+    Stop = 0x0c,
 }
 
 const NOTE_OFF_MASK: u8 = 0b1000_0000;
@@ -72,10 +80,10 @@ impl From<Message> for Raw {
                 let status = CONTROL_CHANGE_MASK | u8::from(chan);
                 Raw { status, payload }
             }
-            Message::System(chan) => {
-                // TODO prettier
+            Message::System(s) => {
+                // TODO make prettier
                 let payload = Payload::SingleByte(U7(0));
-                let status = SYSTEM_EXCLUSIVE_MASK | u8::from(chan);
+                let status = SYSTEM_EXCLUSIVE_MASK | s as u8;
                 Raw { status, payload }
             }
         }
@@ -123,7 +131,21 @@ impl<'a> TryFrom<&'a [u8]> for Message {
                 ControlFunction(get_u7_at(data, 1)?),
                 get_u7_at(data, 2)?,
             )),
-            SYSTEM_EXCLUSIVE_MASK => Ok(Message::System(channel)),
+            SYSTEM_EXCLUSIVE_MASK if channel_bytes == System::Clock as u8 => {
+                Ok(Message::System(System::Clock))
+            }
+            SYSTEM_EXCLUSIVE_MASK if channel_bytes == System::Start as u8 => {
+                Ok(Message::System(System::Start))
+            }
+
+            SYSTEM_EXCLUSIVE_MASK if channel_bytes == System::Continue as u8 => {
+                Ok(Message::System(System::Continue))
+            }
+
+            SYSTEM_EXCLUSIVE_MASK if channel_bytes == System::Stop as u8 => {
+                Ok(Message::System(System::Stop))
+            }
+
             _ => Err(MidiPacketParsingError::InvalidEventType(event_type)),
         }
     }
