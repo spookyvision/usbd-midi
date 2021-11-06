@@ -39,8 +39,8 @@ fn main() -> ! {
 
     let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x5e4))
         .product("MIDI Test")
-        .device_class(USB_AUDIO_CLASS)
-        .device_sub_class(USB_MIDISTREAMING_SUBCLASS)
+        .device_class(0x0)
+        .device_sub_class(0x0)
         .build();
 
     loop {
